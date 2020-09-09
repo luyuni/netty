@@ -20,6 +20,9 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
+import java.nio.charset.Charset;
+import java.util.Date;
+
 /**
  * Handler implementation for the echo client.  It initiates the ping-pong
  * traffic between the echo client and server by sending the first message to
@@ -27,28 +30,41 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
  */
 public class EchoClientHandler extends ChannelInboundHandlerAdapter {
 
-    private final ByteBuf firstMessage;
-
     /**
      * Creates a client-side handler.
      */
     public EchoClientHandler() {
-        firstMessage = Unpooled.buffer(EchoClient.SIZE);
-        for (int i = 0; i < firstMessage.capacity(); i ++) {
-            firstMessage.writeByte((byte) i);
-        }
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        ctx.writeAndFlush(firstMessage);
+        System.out.println(new Date() + ": 客户端写出数据");
+
+        // 1. 获取数据
+        ByteBuf buffer = getByteBuf(ctx);
+
+        // 2. 写数据
+        ctx.channel().writeAndFlush(buffer);
     }
 
+    private ByteBuf getByteBuf(ChannelHandlerContext ctx) {
+        // 1. 获取二进制抽象 ByteBuf
+        ByteBuf buffer = ctx.alloc().buffer();
+
+        // 2. 准备数据，指定字符串的字符集为 utf-8
+        byte[] bytes = "你好，倪裕禄!".getBytes(Charset.forName("utf-8"));
+
+        // 3. 填充数据到 ByteBuf
+        buffer.writeBytes(bytes);
+
+        return buffer;
+    }
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        ctx.write(msg);
-    }
+        ByteBuf byteBuf = (ByteBuf) msg;
 
+        System.out.println(new Date() + ": 客户端读到数据 -> " + byteBuf.toString(Charset.forName("utf-8")));
+    }
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) {
        ctx.flush();
